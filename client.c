@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
     struct hostent      *server;                /*  Holds remote IP address   */
     char 		user_entry 		/*  for user entered command  */
 
+
     /*  Get command line arguments  */
 
     /*  eg. ./client 127.0.0.1 7000  */
@@ -65,7 +66,6 @@ int main(int argc, char *argv[]) {
     /*  Byte copy the address retrieved from server  into the
         server addr structure      */
      bcopy((char *)server->h_addr, (char *)&servaddr.sin_addr.s_addr, server->h_length);
-
     
     /*  connect() to the remote echo server  */
 
@@ -74,8 +74,8 @@ int main(int argc, char *argv[]) {
 	exit(EXIT_FAILURE);
     }
 
-    //do{} while(user_entry != 'q');
 
+    //do{} while(user_entry != 'q');
 
     /*  Get string to echo from user  */
 

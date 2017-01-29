@@ -18,8 +18,7 @@
 
 /*Function declarartions*/
 ssize_t Readline(int, void *, size_t);
-ssize_t Writeline(int, const void *, size_t); 
-
+ssize_t Writeline(int, const void *, size_t);
 
 int main(int argc, char *argv[]) {
     int       list_s;                /*  listening socket          */
@@ -35,11 +34,6 @@ int main(int argc, char *argv[]) {
 
     if ( argc == 2 ) {
         port = atoi(argv[1]);
-	/*port = strtol(argv[1], &endptr, 0);
-	if ( *endptr ) {
-	    fprintf(stderr, "ECHOSERV: Invalid port number.\n");
-	    exit(EXIT_FAILURE);
-	}*/
     }
     else if ( argc < 2 ) {
 	port = ECHO_PORT;
@@ -108,6 +102,7 @@ int main(int argc, char *argv[]) {
 	    exit(EXIT_FAILURE);
 	}
     }
+
 }
 
 
