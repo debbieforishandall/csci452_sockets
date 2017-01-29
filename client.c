@@ -2,19 +2,19 @@
 #include <sys/types.h>        /*  socket types              */
 #include <arpa/inet.h>        /*  inet (3) funtions         */
 #include <unistd.h>           /*  misc. UNIX functions      */
-
-#include "helper.h"           /*  Our own helper functions  */
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <netdb.h>
+#include <errno.h>
 
 
 /*  Global constants  */
 
 #define MAX_LINE           (1000)
 
+ssize_t Readline(int, void *, size_t);
+ssize_t Writeline(int, const void *, size_t);
 
 /*  main()  */
 
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     struct    		sockaddr_in servaddr;   /*  socket address structure  */
     char      		buffer[MAX_LINE];       /*  character buffer          */
     struct hostent      *server;                /*  Holds remote IP address   */
-    char 		user_entry 		/*  for user entered command  */
+    char 		user_entry; 		/*  for user entered command  */
 
 
     /*  Get command line arguments  */
@@ -74,24 +74,89 @@ int main(int argc, char *argv[]) {
 	exit(EXIT_FAILURE);
     }
 
-
-    //do{} while(user_entry != 'q');
-
-    /*  Get string to echo from user  */
-
-    printf("Enter the string to echo: ");
-    fgets(buffer, MAX_LINE, stdin);
-    
-
-    /*  Send string to echo server, and retrieve response  */
-
-    Writeline(conn_s, buffer, strlen(buffer));
-    Readline(conn_s, buffer, MAX_LINE-1);
-
-
-    /*  Output echoed string  */
-
-    printf("Echo response: %s\n", buffer);
+    char c = '0';
+    do{
+	printf("Enter 's' for a string request: \n");
+	printf("Enter 'f' for a file request: \n");
+	printf("Enter 'q' to quit.\n");
+        user_entry = getchar();
+	//scanf("%c", user_entry);
+	if(user_entry == 's'){
+	    // Get string to echo from user  
+    	    printf("Enter the string to echo: ");
+            while(fgets(buffer, MAX_LINE, stdin)){
+            	// Send string to echo server, and retrieve response 
+	    	Writeline(conn_s, buffer, strlen(buffer));
+            	Readline(conn_s, buffer, MAX_LINE-1);
+	    }
+            // Output echoed string 
+            printf("Echo response: %s\n", buffer);
+	} 
+	else if(user_entry == 'f'){
+	    printf("Enter the file name: \n");
+	} 
+	else if (user_entry != 'q'){
+	    printf("Invalid Input!\n");
+	}
+    } while(user_entry != 'q');
+    ungetc(user_entry, stdin);
 
     return EXIT_SUCCESS;
+}
+
+/*  Read a line from a socket  */
+
+ssize_t Readline(int sockd, void *vptr, size_t maxlen) {
+    ssize_t n, rc;
+    char    c, *buffer;
+
+    buffer = vptr;
+
+    for ( n = 1; n < maxlen; n++ ) {
+	
+	if ( (rc = read(sockd, &c, 1)) == 1 ) {
+	    *buffer++ = c;
+	    if ( c == '\n' )
+		break;
+	}
+	else if ( rc == 0 ) {
+	    if ( n == 1 )
+		return 0;
+	    else
+		break;
+	}
+	else {
+	    if ( errno == EINTR )
+		continue;
+	    return -1;
+	}
+    }
+
+    *buffer = 0;
+    return n;
+}
+
+
+/*  Write a line to a socket  */
+
+ssize_t Writeline(int sockd, const void *vptr, size_t n) {
+    size_t      nleft;
+    ssize_t     nwritten;
+    const char *buffer;
+
+    buffer = vptr;
+    nleft  = n;
+
+    while ( nleft > 0 ) {
+	if ( (nwritten = write(sockd, buffer, nleft)) <= 0 ) {
+	    if ( errno == EINTR )
+		nwritten = 0;
+	    else
+		return -1;
+	}
+	nleft  -= nwritten;
+	buffer += nwritten;
+    }
+
+    return n;
 }
