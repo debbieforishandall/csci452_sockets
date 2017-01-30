@@ -26,7 +26,9 @@ int main(int argc, char *argv[]) {
     short int port;                  /*  port number               */
     struct    sockaddr_in servaddr;  /*  socket address structure  */
     char      buffer[MAX_LINE];      /*  character buffer          */
-    char     *endptr;                /*  for strtol()              */
+    char      *endptr;               /*  for strtol()              */
+    ssize_t   n			     /*  for reading from buffer   */
+    char      *c		     /*  for reading from buffer   */
 
 
     /*  Get port number from the command line, and
@@ -87,12 +89,32 @@ int main(int argc, char *argv[]) {
 	    exit(EXIT_FAILURE);
 	}
 
-
-	/*  Retrieve an input line from the connected socket
-	    then simply write it back to the same socket.     */
-
-	Readline(conn_s, buffer, MAX_LINE-1);
-	Writeline(conn_s, buffer, strlen(buffer));
+	// Retrieve first line from the connected socket
+	while ( (n = read(conn-s, &c, 1)) > 0 ) {
+	    *buffer++ = c;
+	    if ( (c == '\n')){ 
+		break;
+	    }    
+	}
+        int i = 0;
+	// Check what type of request
+	if(strcmp(buffer, "CAP\n")== 1){ //String request
+	    memset(buffer, 0, sizeof(buffer));
+	    while ( (n = read(conn_s, &c, 1)) > 0 ) {
+	        *buffer++ = c;
+	        if ( (c == '\n')){ //Check what type of request
+		    break;
+	        }    
+	     }
+	    while( buffer[i]){
+		buffer[i] = toupper(buffer[i]);
+		i++;
+	    }
+	    // Write back the CAP string to the same socket.
+	    Writeline(conn_s, buffer, strlen(buffer));    
+	} else { //File request
+	    Writeline(conn_s, "Not Found", 9);
+	}
 
 
 	/*  Close the connected socket  */
