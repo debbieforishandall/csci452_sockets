@@ -2,7 +2,7 @@
 #include <sys/types.h>        /*  socket types              */
 #include <arpa/inet.h>        /*  inet (3) funtions         */
 #include <unistd.h>           /*  misc. UNIX functions      */
-
+#include <dirent.h>	      /*  file dir functions	    */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,9 +27,13 @@ int main(int argc, char *argv[]) {
     short int port;                  /*  port number               */
     struct    sockaddr_in servaddr;  /*  socket address structure  */
     char      buffer[MAX_LINE];      /*  character buffer          */
+	char 	  msg[MAX_LINE + 10];    /*  character buffer 		   */
     char      *endptr;               /*  for strtol()              */
-    ssize_t   n;		     /*  for reading from buffer   */
-    char      c;		     /*  for reading from buffer   */
+    ssize_t   n;		     		 /*  for reading from buffer   */
+    char      c;		     		 /*  for reading from buffer   */
+    FILE      *fp;		     		 /*  for file reading          */
+    int		  s;	     			 /*  for file reading	   	   */
+    int	      f_len;		         /*  to store file length 	   */
 
 
     /*  Get port number from the command line, and
@@ -83,58 +87,103 @@ int main(int argc, char *argv[]) {
 
     while ( 1 ) {
 
-	/*  Wait for a connection, then accept() it  */
+		/*  Wait for a connection, then accept() it  */
 
-	if ( (conn_s = accept(list_s, NULL, NULL) ) < 0 ) {
-	    fprintf(stderr, "ECHOSERV: Error calling accept()\n");
-	    exit(EXIT_FAILURE);
-	}
+		if ( (conn_s = accept(list_s, NULL, NULL) ) < 0 ) {
+			fprintf(stderr, "ECHOSERV: Error calling accept()\n");
+			exit(EXIT_FAILURE);
+		}
 	
-	int i = 0;
-	// Retrieve first line from the connected socket
-	while ( (n = read(conn_s, &c, 1)) > 0 ) {
-	    buffer[i] = c;
-	    //strcat(buffer, c);
-	    i++;
-	    if ( (c == '\n')){
-		break;
-	    }    
-	}
+		int i = 0;
+		// Retrieve first line from the connected socket
+		memset(buffer,0, sizeof(buffer));
+		while ( (n = read(conn_s, &c, 1)) > 0 ) {
+			buffer[i] = c;
+			//strcat(buffer, c);
+			i++;
+			if ( (c == '\n')){
+			break;
+			}    
+		}
 
-        int a = 0;
-	i = 0;
+		int a = 0;
+		i = 0;
 
-	// Check what type of request
-	if((strcmp(buffer, "CAP\n") == 0) || (strcmp(buffer, "CAP") == 0)){ //String request
-	    memset(buffer, 0, sizeof(buffer));
-	    //Read next line
-	    while ( (n = read(conn_s, &c, 1)) > 0 ) {
-	        buffer[i] = c;
-		//strcat(buffer, c);
-		i++;
-	        if ( (c == '\n')){
-		    break;
-	        }    
-	     }
-	    while( buffer[a]){
-		buffer[a] = toupper(buffer[a]);
-		a++;
-	    }
-	    // Write back the CAP string to the same socket.
-	    Writeline(conn_s, buffer, strlen(buffer));
-	    bzero(buffer, MAX_LINE);   
-	} else { //File request
-	    
-	    Writeline(conn_s, "Not Found", 10);
-	}
+		// Check what type of request
+		if((strcmp(buffer, "CAP\n") == 0) || (strcmp(buffer, "CAP") == 0))
+		{ //String request
+			memset(buffer, 0, sizeof(buffer));
+			memset(msg, 0, sizeof(buffer));
+			//Read next line
+			while ( (n = read(conn_s, &c, 1)) > 0 ) {
+			    buffer[i] = c;
+			//strcat(buffer, c);
+			i++;
+			    if ( (c == '\n')){
+				break;
+			    }    
+			}
+			
+			strcpy(msg, strlen(buffer));
+			strcat(msg, "\n");
+			while( buffer[a]){
+				buffer[a] = toupper(buffer[a]);
+				a++;
+			}
+			strcat(msg, buffer);
 
+			// Write back the CAP string to the same socket.
+			Writeline(conn_s, msg, strlen(msg));
+			bzero(buffer, MAX_LINE);
+			bzero(msg, MAX_LINE);    
+		} 
+		else if((strcmp(buffer, "FILE\n") == 0) || (strcmp(buffer, "FILE") == 0))
+		{ //File request
+		    bzero(buffer, MAX_LINE);
+		    //Read next line
+		    while ( (n = read(conn_s, &c, 1)) > 0 ) 
+			{
+		        if ( (c == '\n')){
+			    	break;
+		        } 
+				buffer[i] = c;
+				i++;   
+		    } 	 
+		
+		    fp = fopen(buffer,"r");
+			fseek(fp, 0L, SEEK_END);
+			f_len = ftell(fp);
+			rewind(fp);
+			
+			bzero(buffer, MAX_LINE);
+			strcpy(buffer, f_len);
+			strcat(buffer, "\n");
+		    while(1)
+			{
+				s = fgetc(fp);
+				if( feof(fp) ){ 
+					break ;
+				}
+				strcat(buffer, s);
+			}
+			fclose(fp);
+	   		Writeline(conn_s, buffer, sizeof(buffer));
+		}
+		else if(strcmp(buffer, "QUIT") == 0)
+		{//Close connection request
+			memset(buffer, 0, sizeof(buffer));	    
+			//  Close the connected socket 
 
-	/*  Close the connected socket  */
-
-	if ( close(conn_s) < 0 ) {
-	    fprintf(stderr, "ECHOSERV: Error calling close()\n");
-	    exit(EXIT_FAILURE);
-	}
+			if ( close(conn_s) < 0 ) {
+			    fprintf(stderr, "ECHOSERV: Error calling close()\n");
+			    exit(EXIT_FAILURE);
+			}
+		} 
+		else 
+		{
+			Writeline(conn_s, "Oops, An error occured", 23);
+		}
+	
     }
 
 }
