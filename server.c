@@ -8,6 +8,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <errno.h>
+#include <ctype.h>
 
 
 /*  Global constants  */
@@ -27,8 +28,8 @@ int main(int argc, char *argv[]) {
     struct    sockaddr_in servaddr;  /*  socket address structure  */
     char      buffer[MAX_LINE];      /*  character buffer          */
     char      *endptr;               /*  for strtol()              */
-    ssize_t   n			     /*  for reading from buffer   */
-    char      *c		     /*  for reading from buffer   */
+    ssize_t   n;		     /*  for reading from buffer   */
+    char      c;		     /*  for reading from buffer   */
 
 
     /*  Get port number from the command line, and
@@ -88,32 +89,43 @@ int main(int argc, char *argv[]) {
 	    fprintf(stderr, "ECHOSERV: Error calling accept()\n");
 	    exit(EXIT_FAILURE);
 	}
-
+	
+	int i = 0;
 	// Retrieve first line from the connected socket
-	while ( (n = read(conn-s, &c, 1)) > 0 ) {
-	    *buffer++ = c;
-	    if ( (c == '\n')){ 
+	while ( (n = read(conn_s, &c, 1)) > 0 ) {
+	    buffer[i] = c;
+	    //strcat(buffer, c);
+	    i++;
+	    if ( (c == '\n')){
 		break;
 	    }    
 	}
-        int i = 0;
+
+        int a = 0;
+	i = 0;
+
 	// Check what type of request
-	if(strcmp(buffer, "CAP\n")== 1){ //String request
+	if((strcmp(buffer, "CAP\n") == 0) || (strcmp(buffer, "CAP") == 0)){ //String request
 	    memset(buffer, 0, sizeof(buffer));
+	    //Read next line
 	    while ( (n = read(conn_s, &c, 1)) > 0 ) {
-	        *buffer++ = c;
-	        if ( (c == '\n')){ //Check what type of request
+	        buffer[i] = c;
+		//strcat(buffer, c);
+		i++;
+	        if ( (c == '\n')){
 		    break;
 	        }    
 	     }
-	    while( buffer[i]){
-		buffer[i] = toupper(buffer[i]);
-		i++;
+	    while( buffer[a]){
+		buffer[a] = toupper(buffer[a]);
+		a++;
 	    }
 	    // Write back the CAP string to the same socket.
-	    Writeline(conn_s, buffer, strlen(buffer));    
+	    Writeline(conn_s, buffer, strlen(buffer));
+	    bzero(buffer, MAX_LINE);   
 	} else { //File request
-	    Writeline(conn_s, "Not Found", 9);
+	    
+	    Writeline(conn_s, "Not Found", 10);
 	}
 
 

@@ -24,6 +24,7 @@ int main(int argc, char *argv[]) {
     int 		portno;                 /*  port number               */
     struct    		sockaddr_in servaddr;   /*  socket address structure  */
     char      		buffer[MAX_LINE];       /*  character buffer          */
+    char		msg[MAX_LINE + 6];		/*  for socket read and write */
     struct hostent      *server;                /*  Holds remote IP address   */
     char		user_entry[10]; 	/*  for user entered command  */
 
@@ -76,36 +77,39 @@ int main(int argc, char *argv[]) {
 
     char c = '0';
     do{
-	//memset(user_entry, 0, sizeof(user_entry));
+	memset(user_entry, 0, sizeof(user_entry));
 	printf("Enter 's' for a string request: \n");
 	printf("Enter 't' for a file request: \n");
 	printf("Enter 'q' to quit.\n");
         //c = getchar();
 	scanf("%s", user_entry);
+	//fflush(stdin);
 	printf("user_entry:  |%s|", user_entry);
         getchar();
 	if((strcmp(user_entry, "s") == 0) || (strcmp(user_entry, "s\n") == 0)){
 	    
 	    // Get string to echo from user  
     	    printf("Enter the string to echo: ");
-	    strcpy(buffer, "CAP\n");
+	    strncpy(msg, "CAP\n", 5);
             fgets(buffer, MAX_LINE, stdin);
-	    strcat(buffer, "\n");
+	    strcat(msg, buffer);
+	    strcat(msg, "\n");
+	    printf(msg);
     	    // Send string to echo server, and retrieve response 
-    	    Writeline(conn_s, buffer, strlen(buffer));
-    	    Readline(conn_s, buffer, MAX_LINE-1);
+    	    Writeline(conn_s, msg, strlen(msg));
+    	    Readline(conn_s, msg, MAX_LINE-1);
             // Output echoed string 
-            printf("Echo response: %s\n", buffer);
+            printf("Echo response: %s\n", msg);
+	    fflush(stdin);
 	} 
 	else if((strcmp(user_entry, "t") == 0)|| (strcmp(user_entry, "t\n") == 0)){
 	    printf("Enter the file name: \n");
 	} 
-	else /*if ((strcmp(user_entry, "q") != 0)|| (strcmp(user_entry, "q\n") != 0))*/{
+	else if (!(strcmp(user_entry, "q") == 0)){
 	    printf("Invalid Input!\n");
 	}
 	
-    } while(strcmp(user_entry, "q") != 0);
-    //ungetc(c, stdin);
+    } while(!(strcmp(user_entry, "q") == 0));
 
     return EXIT_SUCCESS;
 }
