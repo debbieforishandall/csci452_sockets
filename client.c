@@ -20,13 +20,20 @@ ssize_t Writeline(int, const void *, size_t);
 
 int main(int argc, char *argv[]) {
 
-    int       		conn_s;                 /*  connection socket         */
+    int			conn_s;                 /*  connection socket         */
     int 		portno;                 /*  port number               */
-    struct    		sockaddr_in servaddr;   /*  socket address structure  */
-    char      		buffer[MAX_LINE];       /*  character buffer          */
+    struct		sockaddr_in servaddr;   /*  socket address structure  */
+    char		buffer[MAX_LINE];       /*  character buffer          */
     char		msg[MAX_LINE + 7];		/*  for socket read and write */
-    struct hostent      *server;                /*  Holds remote IP address   */
-    char		user_entry[10]; 	/*  for user entered command  */
+	char 		f_size[MAX_LINE];		/* 	holds size of file from server */
+    struct		hostent	*server;		/*  holds remote IP address   */
+    char		user_entry[10];			/*  for user entered command  */
+	ssize_t		n;						/*  for reading from buffer   */
+    char		c;						/*  for reading from buffer   */
+	int 		i;						/*  for reading from buffer   */
+	FILE 		*fp;					/*	for file writing		  */
+	void 		*ptr;					/*	for file writing		  */
+	size_t		received;				/*	size of file received	*/	
 
 
     /*  Get command line arguments  */
@@ -75,7 +82,7 @@ int main(int argc, char *argv[]) {
 	exit(EXIT_FAILURE);
     }
 
-    char c = '0';
+    //char c = '0';
     do{
 		memset(user_entry, 0, sizeof(user_entry));
 		printf("Enter 's' for a string request: \n");
@@ -105,7 +112,7 @@ int main(int argc, char *argv[]) {
 		    Readline(conn_s, msg, MAX_LINE-1); //read string message from server
 	        // Output echoed string
 			printf("String Size: %s\n", buffer); 
-	        printf("Echo response: %s\n", msg);
+	        printf("Server response: %s\n", msg);
 			fflush(stdin);
 		} 
 		else if(!(strcmp(user_entry, "t")) || !(strcmp(user_entry, "t\n")))
@@ -122,15 +129,55 @@ int main(int argc, char *argv[]) {
 
 		    // Send string to echo server, and retrieve response 
 		    Writeline(conn_s, msg, strlen(msg));
-		    Readline(conn_s, msg, MAX_LINE-1);
+			
+			memset(f_size, 0, sizeof(f_size));
+			i = 0;
 
-	        // Output echoed string 
-	        printf("Echo response: %s\n", msg);
+			//Read the size of the file to be received
+		    while ( (n = read(conn_s, &c, 1)) > 0 ) 
+			{
+		        if ( (c == '\n')){
+			    	break;
+		        } 
+				f_size[i] = c;
+				i++;   
+		    }
+			
+			i = 0;
+			ptr = malloc(1);
+			memset(msg, 0, sizeof(msg));
+			//Check the first 9 bytes received to see if the file was not found
+			while ( ((n = read(conn_s, &c, 1)) > 0) && (i <= 9) )
+			{
+				msg[i] = c;
+				i++;   
+		    }
+
+			//Check if file is not found
+			if(strcmp(msg, "NOT FOUND") == 0){
+				printf("Specified file not found");
+			} else {
+				received = 9;
+				//Open a new file for writing
+				fp = fopen (buffer, "w+");
+				memset(buffer, 0, sizeof(buffer));
+				//Write the first 9 bytes to the file
+				fwrite(msg , 1 , sizeof(msg) , fp );
+				//Read the rest of file received from server into new file
+				while ( ((n = read(conn_s, ptr, 1)) > 0) && (received <= *((int*) f_size)) ) 
+				{
+				    fwrite(ptr, 1, 1, fp);
+					received++;  
+				}
+			
+				fclose(fp);
+			}
 			fflush(stdin);
+			free(ptr);
 		} 
 		else if (strcmp(user_entry, "q"))
 		{
-			printf("Invalid Input!\n");
+			//printf("Invalid Input!\n");
 		}
 		    printf(user_entry);
 	

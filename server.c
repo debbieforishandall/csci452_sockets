@@ -31,9 +31,11 @@ int main(int argc, char *argv[]) {
     char      *endptr;               /*  for strtol()              */
     ssize_t   n;		     		 /*  for reading from buffer   */
     char      c;		     		 /*  for reading from buffer   */
+	int 	  i;					 /*  for reading from buffer   */
     FILE      *fp;		     		 /*  for file reading          */
     int		  s;	     			 /*  for file reading	   	   */
     int	      f_len;		         /*  to store file length 	   */
+	void 	  *ptr; 				 /*	for file reading */
 
 
     /*  Get port number from the command line, and
@@ -94,7 +96,7 @@ int main(int argc, char *argv[]) {
 			exit(EXIT_FAILURE);
 		}
 	
-		int i = 0;
+		i = 0;
 		// Retrieve first line from the connected socket
 		memset(buffer,0, sizeof(buffer));
 		while ( (n = read(conn_s, &c, 1)) > 0 ) {
@@ -106,7 +108,6 @@ int main(int argc, char *argv[]) {
 			}    
 		}
 
-		int a = 0;
 		i = 0;
 
 		// Check what type of request
@@ -117,18 +118,18 @@ int main(int argc, char *argv[]) {
 			//Read next line
 			while ( (n = read(conn_s, &c, 1)) > 0 ) {
 			    buffer[i] = c;
-			//strcat(buffer, c);
-			i++;
+				i++;
 			    if ( (c == '\n')){
 				break;
 			    }    
 			}
-			
-			strcpy(msg, strlen(buffer));
+			sprintf(msg, "%d", strlen(buffer));
 			strcat(msg, "\n");
-			while( buffer[a]){
-				buffer[a] = toupper(buffer[a]);
-				a++;
+			
+			i = 0;
+			while( buffer[i]){
+				buffer[i] = toupper(buffer[i]);
+				i++;
 			}
 			strcat(msg, buffer);
 
@@ -141,6 +142,7 @@ int main(int argc, char *argv[]) {
 		{ //File request
 		    bzero(buffer, MAX_LINE);
 		    //Read next line
+			i = 0;
 		    while ( (n = read(conn_s, &c, 1)) > 0 ) 
 			{
 		        if ( (c == '\n')){
@@ -156,18 +158,21 @@ int main(int argc, char *argv[]) {
 			rewind(fp);
 			
 			bzero(buffer, MAX_LINE);
-			strcpy(buffer, f_len);
-			strcat(buffer, "\n");
+			bzero(msg, MAX_LINE);
+			sprintf(msg, "%d", f_len);
+			strcat(msg, "\n");
+			
+			ptr = malloc(1);
 		    while(1)
 			{
-				s = fgetc(fp);
+				fread(ptr, 1, 1, fp);
 				if( feof(fp) ){ 
 					break ;
 				}
-				strcat(buffer, s);
+				strcat(msg, ptr);
 			}
 			fclose(fp);
-	   		Writeline(conn_s, buffer, sizeof(buffer));
+	   		Writeline(conn_s, msg, sizeof(msg));
 		}
 		else if(strcmp(buffer, "QUIT") == 0)
 		{//Close connection request
