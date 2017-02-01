@@ -153,10 +153,10 @@ int main(int argc, char *argv[]) {
 			//Check the first 9 bytes received to see if the file was not found
 			while ( ((n = read(conn_s, &c, 1)) > 0))
 			{
-				if (i <= 8) 
+				if (i <= 9) 
 				{
 					msg[i] = c;
-					i+= n; 
+					i++; 
 				} 
 				else 
 				{
@@ -169,8 +169,7 @@ int main(int argc, char *argv[]) {
 			if(strcmp(msg, "NOT FOUND") == 0){
 				printf("Specified file not found\n");
 			} else {
-				//received = 9;
-				i = 0;
+				//received = 9
 				int len = strlen(buffer);
 				//Remove '\n' char if any from name of file from fgets
 				if (len > 0 && buffer[len-1] == '\n')
@@ -182,7 +181,7 @@ int main(int argc, char *argv[]) {
 				memset(buffer, 0, sizeof(buffer));
 				//Write the first 9 bytes to the file
 				printf(msg);
-				fwrite(msg , 1 , sizeof(msg) , fp );
+				fwrite(msg , 1 , strlen(msg) , fp );
 				//Read the rest of file received from server into new file
 				while ( ((n = read(conn_s, &c, 1)) > 0))
 				{
