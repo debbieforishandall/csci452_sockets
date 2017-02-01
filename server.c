@@ -94,99 +94,104 @@ int main(int argc, char *argv[]) {
 		if ( (conn_s = accept(list_s, NULL, NULL) ) < 0 ) {
 			fprintf(stderr, "ECHOSERV: Error calling accept()\n");
 			exit(EXIT_FAILURE);
-		}
-	
-		i = 0;
-		// Retrieve first line from the connected socket
-		memset(buffer,0, sizeof(buffer));
-		while ( (n = read(conn_s, &c, 1)) > 0 ) {
-			buffer[i] = c;
-			//strcat(buffer, c);
-			i++;
-			if ( (c == '\n')){
-			break;
-			}    
-		}
-
-		i = 0;
-
-		// Check what type of request
-		if((strcmp(buffer, "CAP\n") == 0) || (strcmp(buffer, "CAP") == 0))
-		{ //String request
-			memset(buffer, 0, sizeof(buffer));
-			memset(msg, 0, sizeof(buffer));
-			//Read next line
-			while ( (n = read(conn_s, &c, 1)) > 0 ) {
-			    buffer[i] = c;
-				i++;
-			    if ( (c == '\n')){
-				break;
-			    }    
-			}
-			sprintf(msg, "%d", strlen(buffer));
-			strcat(msg, "\n");
-			
-			i = 0;
-			while( buffer[i]){
-				buffer[i] = toupper(buffer[i]);
-				i++;
-			}
-			strcat(msg, buffer);
-
-			// Write back the CAP string to the same socket.
-			Writeline(conn_s, msg, strlen(msg));
-			bzero(buffer, MAX_LINE);
-			bzero(msg, MAX_LINE);    
-		} 
-		else if((strcmp(buffer, "FILE\n") == 0) || (strcmp(buffer, "FILE") == 0))
-		{ //File request
-		    bzero(buffer, MAX_LINE);
-		    //Read next line
-			i = 0;
-		    while ( (n = read(conn_s, &c, 1)) > 0 ) 
-			{
-		        if ( (c == '\n')){
-			    	break;
-		        } 
-				buffer[i] = c;
-				i++;   
-		    } 	 
-		
-		    fp = fopen(buffer,"r");
-			fseek(fp, 0L, SEEK_END);
-			f_len = ftell(fp);
-			rewind(fp);
-			
-			bzero(buffer, MAX_LINE);
-			bzero(msg, MAX_LINE);
-			sprintf(msg, "%d", f_len);
-			strcat(msg, "\n");
-			
-			ptr = malloc(1);
-		    while(1)
-			{
-				fread(ptr, 1, 1, fp);
-				if( feof(fp) ){ 
-					break ;
+		} else {
+			while(1){
+				printf("here");
+				i = 0;
+				// Retrieve first line from the connected socket
+				memset(buffer,0, sizeof(buffer));
+				while ( (n = read(conn_s, &c, 1)) > 0 ) {
+					buffer[i] = c;
+					//strcat(buffer, c);
+					i++;
+					if ( (c == '\n')){
+						break;
+					}    
 				}
-				strcat(msg, ptr);
-			}
-			fclose(fp);
-	   		Writeline(conn_s, msg, sizeof(msg));
-		}
-		else if(strcmp(buffer, "QUIT") == 0)
-		{//Close connection request
-			memset(buffer, 0, sizeof(buffer));	    
-			//  Close the connected socket 
 
-			if ( close(conn_s) < 0 ) {
-			    fprintf(stderr, "ECHOSERV: Error calling close()\n");
-			    exit(EXIT_FAILURE);
+				i = 0;
+				printf(buffer);
+				// Check what type of request
+				if((strcmp(buffer, "CAP\n") == 0) || (strcmp(buffer, "CAP") == 0))
+				{ //String request
+					memset(buffer, 0, sizeof(buffer));
+					memset(msg, 0, sizeof(msg));
+					//Read next line
+					while ( (n = read(conn_s, &c, 1)) > 0 ) {
+						buffer[i] = c;
+						i++;
+						if ( (c == '\n')){
+							break;
+						}    
+					}
+					printf(buffer);
+					sprintf(msg, "%d", strlen(buffer));
+					strcat(msg, "\n");
+			
+					i = 0;
+					while( buffer[i]){
+						buffer[i] = toupper(buffer[i]);
+						i++;
+					}
+					strcat(msg, buffer);
+
+					// Write back the CAP string to the same socket.
+					Writeline(conn_s, msg, strlen(msg));
+					//bzero(buffer, MAX_LINE);
+					//bzero(msg, MAX_LINE);    
+				} 
+				else if((strcmp(buffer, "FILE\n") == 0) || (strcmp(buffer, "FILE") == 0))
+				{ //File request
+					memset(buffer, 0, sizeof(buffer));
+					//Read next line
+					i = 0;
+					while ( (n = read(conn_s, &c, 1)) > 0 ) 
+					{
+						if ( (c == '\n')){
+							break;
+						} 
+						buffer[i] = c;
+						i++;   
+					} 	 
+					printf(buffer);
+					fp = fopen(buffer,"r");
+					fseek(fp, 0L, SEEK_END);
+					f_len = ftell(fp);
+					rewind(fp);
+			
+					bzero(buffer, MAX_LINE);
+					bzero(msg, MAX_LINE);
+					sprintf(msg, "%d", f_len);
+					strcat(msg, "\n");
+			
+					ptr = malloc(1);
+					while(1)
+					{
+						fread(ptr, 1, 1, fp);
+						if( feof(fp) ){ 
+							break ;
+						}
+						strcat(msg, ptr);
+					}
+					fclose(fp);
+					printf("Closed File");
+			   		Writeline(conn_s, msg, sizeof(msg));
+				}
+				else if(strcmp(buffer, "QUIT") == 0)
+				{//Close connection request
+					memset(buffer, 0, sizeof(buffer));	    
+					//  Close the connected socket 
+
+					if ( close(conn_s) < 0 ) {
+						fprintf(stderr, "ECHOSERV: Error calling close()\n");
+						exit(EXIT_FAILURE);
+					}
+				} 
+				else 
+				{
+					//Writeline(conn_s, "Oops, An error occured", 23);
+				}
 			}
-		} 
-		else 
-		{
-			Writeline(conn_s, "Oops, An error occured", 23);
 		}
 	
     }
