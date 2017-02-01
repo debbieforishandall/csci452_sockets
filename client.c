@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
     char		buffer[MAX_LINE];       /*  character buffer          */
     char		msg[MAX_LINE + 7];		/*  for socket read and write */
 	char 		f_size[MAX_LINE];		/* 	holds size of file from server */
+	char		f_name[MAX_LINE];		/*	holds file name			*/
     struct		hostent	*server;		/*  holds remote IP address   */
     char		user_entry[10];			/*  for user entered command  */
 	ssize_t		n;						/*  for reading from buffer   */
@@ -85,6 +86,7 @@ int main(int argc, char *argv[]) {
     //char c = '0';
     do{
 		memset(user_entry, 0, sizeof(user_entry));
+		
 		printf("Enter 's' for a string request: \n");
 		printf("Enter 't' for a file request: \n");
 		printf("Enter 'q' to quit.\n");
@@ -94,7 +96,8 @@ int main(int argc, char *argv[]) {
 		getchar();
 		if(!(strcmp(user_entry, "s")) || !(strcmp(user_entry, "s\n")))
 		{
-			
+			memset(buffer, 0, sizeof(buffer));
+			memset(msg, 0, sizeof(msg));
 			// Get string to echo from user  
 			printf("Enter the string to echo: ");
 			strncpy(msg, "CAP\n", 5);
@@ -102,7 +105,7 @@ int main(int argc, char *argv[]) {
 		    fgets(buffer, MAX_LINE, stdin);
 			strcat(msg, buffer);
 			strcat(msg, "\n");
-			printf(msg);
+			//printf(msg);
 
 		    // Send string to echo server, and retrieve response 
 		    Writeline(conn_s, msg, strlen(msg));
@@ -125,7 +128,7 @@ int main(int argc, char *argv[]) {
 			fgets(buffer, MAX_LINE, stdin);
 			strcat(msg, buffer);
 			strcat(msg, "\n");
-			printf(msg);
+			//printf(msg);
 
 		    // Send string to echo server, and retrieve response 
 		    Writeline(conn_s, msg, strlen(msg));
@@ -144,42 +147,66 @@ int main(int argc, char *argv[]) {
 		    }
 			
 			i = 0;
-			ptr = malloc(1);
+			//ptr = malloc(1);
 			memset(msg, 0, sizeof(msg));
+			printf("Size: %d\n", atoi(f_size));
 			//Check the first 9 bytes received to see if the file was not found
-			while ( ((n = read(conn_s, &c, 1)) > 0) && (i <= 9) )
+			while ( ((n = read(conn_s, &c, 1)) > 0))
 			{
-				msg[i] = c;
-				i++;   
+				if (i <= 8) 
+				{
+					msg[i] = c;
+					i+= n; 
+				} 
+				else 
+				{
+					break;
+				}
 		    }
+			received = i;
 
 			//Check if file is not found
 			if(strcmp(msg, "NOT FOUND") == 0){
-				printf("Specified file not found");
+				printf("Specified file not found\n");
 			} else {
-				received = 9;
+				//received = 9;
+				i = 0;
+				int len = strlen(buffer);
+				//Remove '\n' char if any from name of file from fgets
+				if (len > 0 && buffer[len-1] == '\n')
+				{
+					buffer[len-1] = '\0';
+				}
 				//Open a new file for writing
 				fp = fopen (buffer, "w+");
 				memset(buffer, 0, sizeof(buffer));
 				//Write the first 9 bytes to the file
+				printf(msg);
 				fwrite(msg , 1 , sizeof(msg) , fp );
 				//Read the rest of file received from server into new file
-				while ( ((n = read(conn_s, ptr, 1)) > 0) && (received <= *((int*) f_size)) ) 
+				while ( ((n = read(conn_s, &c, 1)) > 0))
 				{
-				    fwrite(ptr, 1, 1, fp);
-					received++;  
+					if(received < atoi(f_size))
+				    {
+						fwrite(&c, 1, 1, fp);
+						printf(&c);
+						received+= n;
+						//printf("received so far: %d", received);
+					} else {
+						break;
+					}
 				}
-			
+				
 				fclose(fp);
+				printf("Received: %d", received);
 			}
-			fflush(stdin);
-			free(ptr);
+			//fflush(stdin);
+			//free(ptr);
 		} 
 		else if (strcmp(user_entry, "q"))
 		{
 			//printf("Invalid Input!\n");
 		}
-		    printf(user_entry);
 	
     } 
 	while(strcmp(user_entry, "q") );

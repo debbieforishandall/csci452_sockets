@@ -96,7 +96,6 @@ int main(int argc, char *argv[]) {
 			exit(EXIT_FAILURE);
 		} else {
 			while(1){
-				printf("here");
 				i = 0;
 				// Retrieve first line from the connected socket
 				memset(buffer,0, sizeof(buffer));
@@ -155,26 +154,37 @@ int main(int argc, char *argv[]) {
 					} 	 
 					printf(buffer);
 					fp = fopen(buffer,"r");
-					fseek(fp, 0L, SEEK_END);
-					f_len = ftell(fp);
-					rewind(fp);
+					if(fp != NULL){
+						fseek(fp, 0L, SEEK_END);
+						f_len = ftell(fp);
+						rewind(fp);
 			
-					bzero(buffer, MAX_LINE);
-					bzero(msg, MAX_LINE);
-					sprintf(msg, "%d", f_len);
-					strcat(msg, "\n");
-			
-					ptr = malloc(1);
-					while(1)
-					{
-						fread(ptr, 1, 1, fp);
-						if( feof(fp) ){ 
-							break ;
+						bzero(buffer, MAX_LINE);
+						bzero(msg, MAX_LINE);
+						sprintf(msg, "%d", f_len);
+						strcat(msg, "\n");
+						printf("Size: %d", f_len);
+						ptr = malloc(1);
+						while(1)
+						{
+							fread(ptr, 1, 1, fp);
+							if( feof(fp) ){ 
+								break ;
+							}
+							strcat(msg, ptr);
+							printf(ptr);
 						}
-						strcat(msg, ptr);
+						fclose(fp);
+						printf("Closed File");
+					} 
+					else 
+					{//File not found
+						memset(msg, 0, sizeof(msg));
+						strcpy(msg, "9");
+						strcat(msg, "\n");
+						strcat(msg, "NOT FOUND");
 					}
-					fclose(fp);
-					printf("Closed File");
+
 			   		Writeline(conn_s, msg, sizeof(msg));
 				}
 				else if(strcmp(buffer, "QUIT") == 0)
